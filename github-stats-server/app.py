@@ -106,57 +106,69 @@ def clone_repository(repo_url, target_dir):
         print(f"开始克隆仓库: {repo_url} -> {target_dir}")
         import sys
         sys.stdout.flush()
-        
+
         # 设置环境变量确保Git可用
         env = os.environ.copy()
         if '/mingw64/bin' not in env.get('PATH', ''):
             env['PATH'] = '/mingw64/bin:' + env.get('PATH', '')
-        
+
         # 确保目标目录不存在
         if os.path.exists(target_dir):
             print(f"删除已存在的目录: {target_dir}")
             shutil.rmtree(target_dir)
-        
+
         # 创建父目录
         parent_dir = os.path.dirname(target_dir)
         print(f"创建父目录: {parent_dir}")
         os.makedirs(parent_dir, exist_ok=True)
-        
+
         # 简化Git检查 - 直接尝试使用git
         git_cmd = 'git'
-        
+
         print(f"当前PATH: {env.get('PATH', '无')}")
-        
+
+        # Windows pythonw 环境下的特殊处理
+        import platform
+        startupinfo = None
+        creationflags = 0
+        if platform.system() == 'Windows':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            creationflags = subprocess.CREATE_NO_WINDOW
+
         try:
             print(f"检查Git是否可用...")
-            git_version = subprocess.run([git_cmd, '--version'], 
+            git_version = subprocess.run([git_cmd, '--version'],
                                        capture_output=True, text=True, timeout=10,
-                                       env=env)
+                                       env=env, stdin=subprocess.DEVNULL,
+                                       startupinfo=startupinfo, creationflags=creationflags)
             print(f"Git命令返回码: {git_version.returncode}")
-            
+
             if git_version.returncode == 0:
                 print(f"Git版本: {git_version.stdout.strip()}")
             else:
                 print(f"Git检查失败: {git_version.stderr}")
                 return False, f"Git检查失败: {git_version.stderr}"
-                
+
         except Exception as e:
             print(f"Git检查异常: {e}")
             return False, f"Git检查异常: {str(e)}"
-        
+
         # 使用浅克隆减少下载时间
         cmd = [git_cmd, 'clone', '--depth', '1', repo_url, target_dir]
         print(f"执行命令: {' '.join(cmd)}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, 
-                              encoding='utf-8', errors='ignore', env=env)
-        
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
+                              encoding='utf-8', errors='ignore', env=env, stdin=subprocess.DEVNULL,
+                              startupinfo=startupinfo, creationflags=creationflags)
+
         print(f"Git clone 返回码: {result.returncode}")
         if result.stdout:
             print(f"Git clone 标准输出: {result.stdout}")
         if result.stderr:
             print(f"Git clone 错误输出: {result.stderr}")
-        
+
         if result.returncode == 0:
             print(f"克隆成功，目录大小: {len(os.listdir(target_dir)) if os.path.exists(target_dir) else 0} 项")
             return True, "克隆成功"
@@ -164,7 +176,7 @@ def clone_repository(repo_url, target_dir):
             error_msg = result.stderr.strip() if result.stderr.strip() else "未知错误"
             print(f"克隆失败: {error_msg}")
             return False, f"克隆失败: {error_msg}"
-            
+
     except subprocess.TimeoutExpired:
         print("克隆超时")
         return False, "克隆超时"
