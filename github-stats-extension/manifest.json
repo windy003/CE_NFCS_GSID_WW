@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "GitHub Repository Statistics",
+  "name": "GitHub仓库代码行数",
   "version": "1.0",
   "description": "统计GitHub仓库代码行数并显示详细分析",
   "permissions": [
