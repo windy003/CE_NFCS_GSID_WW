@@ -1,0 +1,1 @@
+CreateObject("Wscript.Shell").Run  "D:\files\using\CE\CE_NFCS_GSID_WW\github-stats-server\app.py", 0, False
