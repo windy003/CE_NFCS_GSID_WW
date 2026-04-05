@@ -323,7 +323,7 @@ def analyze_repository_stats(repo_path):
                     
                     # 获取文件扩展名用于分类显示
                     _, ext = os.path.splitext(file)
-                    file_type = ext if ext else '无扩展名'
+                    file_type = ext.lower() if ext else '无扩展名'
                     
                     # 记录文件统计
                     stats['file_stats'][relative_path] = {
@@ -373,6 +373,8 @@ def convert_file_types_to_languages(file_type_stats):
     language_mapping = {
         '.py': 'Python',
         '.js': 'JavaScript',
+        '.mjs': 'JavaScript',
+        '.cjs': 'JavaScript',
         '.ts': 'TypeScript',
         '.jsx': 'React JSX',
         '.tsx': 'React TSX',
@@ -680,9 +682,13 @@ def stats_page():
         import base64
         stats_json = json.dumps(stats, ensure_ascii=True, separators=(',', ':'))
         stats_b64 = base64.b64encode(stats_json.encode('utf-8')).decode('ascii')
-        
-        return render_template_string(STATS_TEMPLATE, 
-                                    owner=owner, repo=repo, stats=stats, stats_b64=stats_b64)
+
+        # 将文件扩展名统计转换为语言统计（合并 .js/.mjs/.cjs 等）
+        languages = convert_file_types_to_languages(stats['file_type_stats'])
+
+        return render_template_string(STATS_TEMPLATE,
+                                    owner=owner, repo=repo, stats=stats, stats_b64=stats_b64,
+                                    languages=languages)
                                     
     except Exception as e:
         return render_template_string(ERROR_TEMPLATE, 
@@ -881,15 +887,15 @@ STATS_TEMPLATE = '''
             </div>
         </div>
 
-        {% if stats.file_type_stats %}
+        {% if languages %}
         <div class="section">
             <div class="section-header">
-                <h2>文件类型分布</h2>
+                <h2>语言分布</h2>
             </div>
             <div class="language-stats">
-                {% for file_type, lines in stats.file_type_stats.items() %}
+                {% for language, lines in languages.items() %}
                 <div class="language-item">
-                    <span>{{ file_type }}</span>
+                    <span>{{ language }}</span>
                     <span class="lines-count">{{ "{:,}".format(lines) }} 行</span>
                 </div>
                 {% endfor %}
