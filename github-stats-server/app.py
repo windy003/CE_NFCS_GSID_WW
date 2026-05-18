@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import subprocess
 import os
+import sys
 import tempfile
 import shutil
 import time
@@ -10,6 +11,14 @@ import json
 from pathlib import Path
 import re
 from i18n import i18n
+
+# pythonw.exe 下 sys.stdout / sys.stderr 为 None，会让所有 print() 和 sys.stdout.flush() 崩溃。
+# 把输出重定向到日志文件，确保现有 print 调用全部可用，同时方便排查问题。
+if sys.stdout is None or sys.stderr is None:
+    _log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.log')
+    _log_file = open(_log_path, 'a', encoding='utf-8', buffering=1)
+    sys.stdout = _log_file
+    sys.stderr = _log_file
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'github_stats_secret_key_2023'  # 用于session
@@ -502,10 +511,10 @@ def analyze_repository():
             print(f"准备克隆到: {target_dir}")
             
             # 克隆仓库
-            success = clone_repository(repo_url, target_dir)
+            success, message = clone_repository(repo_url, target_dir)
             if not success:
-                print(f"克隆仓库失败: {repo_url}")
-                return jsonify({'error': i18n.t('error_repo_not_found')}), 404
+                print(f"克隆仓库失败: {repo_url} - {message}")
+                return jsonify({'error': f"{i18n.t('error_repo_not_found')}: {message}"}), 404
             
             print("克隆成功，开始分析...")
             

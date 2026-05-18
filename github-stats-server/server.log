@@ -1,0 +1,8 @@
+Loaded translations for en: 29 keys
+Loaded translations for zh: 29 keys
+Available locales: ['en', 'zh']
+GitHub Stats Server starting...
+Server will run on http://localhost:5004
+Health check: http://localhost:5004/health
+ * Debugger is active!
+ * Debugger PIN: 145-182-720
