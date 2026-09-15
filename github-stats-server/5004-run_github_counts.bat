@@ -1,1 +1,1 @@
-start   /b  pythonw "D:\files\using\CE\CE_NFCS_GSID_WW\github-stats-server\app.py"
+start   /b ""  "D:\files\using\CE\CE_NFCS_GSID_WW\github-stats-server\.venv\Scripts\pythonw.exe" "D:\files\using\CE\CE_NFCS_GSID_WW\github-stats-server\app.py"

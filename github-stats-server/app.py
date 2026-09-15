@@ -10,7 +10,6 @@ from collections import defaultdict
 import json
 from pathlib import Path
 import re
-from i18n import i18n
 
 # pythonw.exe 下 sys.stdout / sys.stderr 为 None，会让所有 print() 和 sys.stdout.flush() 崩溃。
 # 把输出重定向到日志文件，确保现有 print 调用全部可用，同时方便排查问题。
@@ -23,9 +22,6 @@ if sys.stdout is None or sys.stderr is None:
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = 'github_stats_secret_key_2023'  # 用于session
 CORS(app)
-
-# 初始化国际化
-i18n.init_app(app)
 
 # 移除缓存机制，每次都重新统计
 
@@ -462,31 +458,22 @@ def health_check():
     """健康检查接口"""
     return jsonify({'status': 'ok', 'message': 'GitHub Stats Server is running'})
 
-@app.route('/reload-translations')
-def reload_translations():
-    """重新加载翻译文件"""
-    try:
-        i18n.load_translations()
-        return jsonify({'status': 'ok', 'message': 'Translations reloaded successfully'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 @app.route('/analyze', methods=['POST'])
 def analyze_repository():
     """分析仓库接口 - 适配新的前端格式"""
     try:
         data = request.get_json()
         print(f"接收到的分析请求: {data}")
-        
+
         if not data:
-            return jsonify({'error': i18n.t('error_invalid_url')}), 400
-        
+            return jsonify({'error': '请输入有效的GitHub仓库URL地址'}), 400
+
         repo_url = data.get('repo_url', '')
         owner = data.get('owner', '')
         repo = data.get('repo', '')
-        
+
         if not repo_url or not owner or not repo:
-            return jsonify({'error': i18n.t('error_invalid_url')}), 400
+            return jsonify({'error': '请输入有效的GitHub仓库URL地址'}), 400
         
         # 生成任务ID
         task_id = f"{owner}_{repo}_{int(time.time())}"
@@ -514,7 +501,7 @@ def analyze_repository():
             success, message = clone_repository(repo_url, target_dir)
             if not success:
                 print(f"克隆仓库失败: {repo_url} - {message}")
-                return jsonify({'error': f"{i18n.t('error_repo_not_found')}: {message}"}), 404
+                return jsonify({'error': f"仓库未找到或无法访问: {message}"}), 404
             
             print("克隆成功，开始分析...")
             
@@ -535,43 +522,21 @@ def analyze_repository():
                 'fileStats': stats['file_stats'],
                 'folderStats': stats['folder_stats'],
                 'fileTypeStats': dict(stats['file_type_stats']),
-                'message': i18n.t('analysis_complete')
+                'message': '分析完成'
             })
-            
+
         except Exception as e:
             print(f"分析过程出错: {e}")
-            return jsonify({'error': i18n.t('error_analysis_failed')}), 500
-        
+            return jsonify({'error': '分析失败'}), 500
+
     except Exception as e:
         print(f"分析请求处理错误: {e}")
-        return jsonify({'error': i18n.t('error_analysis_failed')}), 500
+        return jsonify({'error': '分析失败'}), 500
 
 @app.route('/')
 def index():
     """主页"""
-    # 检查是否存在国际化模板
-    template_path = os.path.join(os.path.dirname(__file__), 'templates', 'index_i18n.html')
-    if os.path.exists(template_path):
-        # 使用国际化模板
-        from flask import render_template
-        return render_template('index_i18n.html')
-    else:
-        # 回退到原始index.html
-        with open(os.path.join(os.path.dirname(__file__), 'index.html'), 'r', encoding='utf-8') as f:
-            return f.read()
-
-@app.route('/test.html')
-def test_page():
-    """测试页面"""
-    import os
-    with open(os.path.join(os.path.dirname(__file__), 'test.html'), 'r', encoding='utf-8') as f:
-        return f.read()
-
-@app.route('/mobile_test.html')
-def mobile_test_page():
-    """移动端优化测试页面"""
-    import os
-    with open(os.path.join(os.path.dirname(__file__), 'mobile_test.html'), 'r', encoding='utf-8') as f:
+    with open(os.path.join(os.path.dirname(__file__), 'index.html'), 'r', encoding='utf-8') as f:
         return f.read()
 
 @app.route('/api/stats', methods=['POST'])
